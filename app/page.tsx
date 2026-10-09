@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useState } from "react";
 import * as E from "../lib/engine";
-const { P, L, U, MS, SCN, THR, KBS, f, st, gab, conf, hz, idl, jp, jm, jl, rk, chart } = E as any;
+const { P, L, U, MS, SCN, THR, KBS, f, st, gab, conf, hz, idl, jp, jm, jl, rk, chart, toApi } = E as any;
 const SK = Object.keys(SCN);
 const TONE: any = { ok: "border-l-green-500", near: "border-l-amber-400", warn: "border-l-orange-500", crit: "border-l-red-500" };
 const BADGE: any = { Normal: "bg-green-100 text-green-800", Peringatan: "bg-amber-100 text-amber-800", Kritis: "bg-red-100 text-red-800" };
@@ -11,19 +11,19 @@ const clone = (x: any) => JSON.parse(JSON.stringify(x));
 
 function Card({ icon, tag, rng, o }: any) {
   return (
-    <article className={`rounded-2xl border border-slate-200 border-l-[6px] bg-white p-5 shadow-sm transition hover:shadow-md ${TONE[o.tone]}`}>
+    <article className={`rounded-2xl border border-slate-200 border-l-[6px] bg-white p-5 shadow-sm transition hover:shadow-md ${TONE[o.urgensi]}`}>
       <div className="flex items-center justify-between text-xs text-slate-500">
         <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 font-semibold text-green-900"><span>{icon}</span>{tag}</span>
         <span>{rng}</span>
       </div>
       <h3 className="mt-3 text-lg font-semibold leading-snug">{o.judul}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-slate-700">{o.ring}</p>
-      <div className="mt-3 rounded-xl bg-green-50 p-3"><div className="text-xs font-bold uppercase tracking-wide text-green-900">Yang perlu dilakukan</div><p className="mt-1 text-sm">{o.tind}</p></div>
-      {o.damp ? <div className="mt-2 rounded-xl bg-orange-50 p-3"><div className="text-xs font-bold uppercase tracking-wide text-orange-800">Dampak</div><p className="mt-1 text-sm">{o.damp}</p></div> : null}
-      {(o.extra || []).map((x: string, i: number) => <p key={i} className="mt-2 text-sm text-slate-500">{x}</p>)}
-      {o.cat ? <p className="mt-2 text-xs italic text-slate-500">{o.cat}</p> : null}
-      {o.bar ? <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-100"><i style={{ width: o.bar.n + "%", background: "#16a34a" }} /><i style={{ width: o.bar.w + "%", background: "#f59e0b" }} /></div> : null}
-      <div className="mt-3 flex flex-wrap gap-1.5">{(o.acts || []).map((a: any, i: number) => <span key={i} className={`rounded-full px-3 py-1 text-xs ${a.by === "sistem" ? "bg-green-100 text-green-900" : "bg-amber-100 text-amber-900"}`}>{a.by === "sistem" ? "Otomatis oleh sistem" : "Dikerjakan operator"}: {a.n}, {a.kap}</span>)}</div>
+      <p className="mt-2 text-sm leading-relaxed text-slate-700">{o.ringkasan}</p>
+      <div className="mt-3 rounded-xl bg-green-50 p-3"><div className="text-xs font-bold uppercase tracking-wide text-green-900">Yang perlu dilakukan</div><p className="mt-1 text-sm">{o.tindakan}</p></div>
+      {o.dampak ? <div className="mt-2 rounded-xl bg-orange-50 p-3"><div className="text-xs font-bold uppercase tracking-wide text-orange-800">Dampak</div><p className="mt-1 text-sm">{o.dampak}</p></div> : null}
+      {(o.tambahan || []).map((x: string, i: number) => <p key={i} className="mt-2 text-sm text-slate-500">{x}</p>)}
+      {o.catatan ? <p className="mt-2 text-xs italic text-slate-500">{o.catatan}</p> : null}
+      {o.distribusi_status ? <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-slate-100"><i style={{ width: o.distribusi_status.normal_persen + "%", background: "#16a34a" }} /><i style={{ width: o.distribusi_status.peringatan_persen + "%", background: "#f59e0b" }} /></div> : null}
+      <div className="mt-3 flex flex-wrap gap-1.5">{(o.aksi_rekomendasi || []).map((a: any, i: number) => <span key={i} className={`rounded-full px-3 py-1 text-xs ${a.dieksekusi_oleh === "sistem" ? "bg-green-100 text-green-900" : "bg-amber-100 text-amber-900"}`}>{a.dieksekusi_oleh === "sistem" ? "Otomatis oleh sistem" : "Dikerjakan operator"}: {a.aktuator}, {a.kapan}</span>)}</div>
     </article>
   );
 }
@@ -37,16 +37,16 @@ export default function Page() {
   const run = (au: boolean) => {
     const [h, mi] = clk.split(":").map(Number);
     const S: any = { auto: au, t: THR[au ? "inkubasi" : "threshold_manual"], nowMin: h * 60 + mi, a: Object.fromEntries(P.map((p: string, i: number) => [p, v.a[i]])), g: Object.fromEntries(MS.map((m: number) => [m, Object.fromEntries(P.map((p: string, i: number) => [p, v.g[m][i]]))])) };
-    return { S, jp: jp({ ...S, now: S.nowMin }), jm: jm({ ...S, now: S.nowMin }), jl: jl({ ...S, now: { d: new Date(2026, 7, 31) } }), rk: rk(S, kb) };
+    return { S, jp: toApi(jp({ ...S, now: S.nowMin })), jm: toApi(jm({ ...S, now: S.nowMin })), jl: toApi(jl({ ...S, now: { d: new Date(2026, 7, 31) } })), rk: toApi(rk(S, kb)) };
   };
   const R = useMemo(() => run(auto), [auto, kb, clk, v]);
   const C = useMemo(() => (cmp ? [run(true), run(false)] : null), [cmp, kb, clk, v]);
   const { S } = R, t = S.t;
-  const worst = Math.max(RANK[R.jp.tone], RANK[R.jm.tone]);
-  const data = () => ({ mode: auto ? "Otomasi (profil Inkubasi)" : "Threshold (manual)", kumbung: kb, jangka_pendek: R.jp, jangka_menengah: R.jm, jangka_panjang: R.jl, rangkuman_periodik: R.rk });
+  const worst = Math.max(RANK[R.jp.urgensi], RANK[R.jm.urgensi]);
+  const data = () => ({ mode: { automation_mode: auto, nama_mode: auto ? "Otomasi (profil Inkubasi)" : "Threshold (manual)", tipe_threshold: auto ? "inkubasi" : "threshold_manual" }, device_id: kb, jangka_pendek: R.jp, jangka_menengah: R.jm, jangka_panjang: R.jl, rangkuman_periodik: R.rk });
   const exportJson = () => { const u = URL.createObjectURL(new Blob([JSON.stringify(data(), null, 2)], { type: "application/json" })); const el = document.createElement("a"); el.href = u; el.download = "insight-aigra.json"; el.click(); URL.revokeObjectURL(u); };
   const [copied, setCopied] = useState(false);
-  const copy = async () => { const d: any = data(); await navigator.clipboard.writeText(["jangka_pendek", "jangka_menengah", "jangka_panjang", "rangkuman_periodik"].map((k) => `${d[k].judul}\n${d[k].ring}\n${d[k].tind}`).join("\n\n")); setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  const copy = async () => { const d: any = data(); await navigator.clipboard.writeText(["jangka_pendek", "jangka_menengah", "jangka_panjang", "rangkuman_periodik"].map((k) => `${d[k].judul}\n${d[k].ringkasan}\n${d[k].tindakan}`).join("\n\n")); setCopied(true); setTimeout(() => setCopied(false), 1500); };
 
   return (
     <>
